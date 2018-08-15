@@ -325,6 +325,52 @@ def warfPoints(poly_pts , matrix_):
         rotate_pts.append([x_y[0][0] , x_y[1][0]])
     return rotate_pts
 
+def imageZoom(img ,poly_pts ,  flag):
+    '''
+    缩放操作
+    :param img:
+    :param poly_pts:
+    :param flag:
+    :return:
+    '''
+    img_h , img_w = img.shape[:2]
+    new_h = 0
+    new_w = 0
+
+    if flag == 1:
+        new_h = int(1.1 * img_h)
+        new_w = int(1.1 * img_w)
+    else:
+        new_h = int(img_h/1.1)
+        new_w = int(img_w/1.1)
+
+    img2 = cv2.resize(img , (new_w , new_h))
+    new_poly_pts = []
+    for i in poly_pts:
+        new_x = int(new_w * i[0] / float(img_w))
+        new_y = int(new_h * i[1] / float(img_h))
+        new_poly_pts.append([new_x, new_y])
+    return  img2 , new_poly_pts
+
+def addPepperNoise(src):
+    '''
+    添加椒盐噪声
+    :param src:
+    :return:
+    '''
+    img_h , img_w = src.shape[:2]
+    new_img = src.copy()
+    NoiseNum = int(0.001 * img_h * img_w)
+    for i in range(NoiseNum):
+        randX = np.random.randint(0 , img_w - 1)
+        randY = np.random.randint(0 , img_h - 1)
+        if np.random.randint(0 , 2) == 0:
+            new_img[randY , randX] = [0 , 0 , 0]
+        else:
+            new_img[randY, randX] = [255, 255, 255]
+
+    return new_img
+
 
 if __name__ == '__main__':
     # 生成模板图像
@@ -416,7 +462,7 @@ if __name__ == '__main__':
 
         pt1_x = np.random.randint(0 , img_w)
         pt1_y = np.random.randint(0 , img_h)
-        print('.') ,
+
         for j in tqdm(range(0 , roi_num)): # 第一次遍历roi
             result = img.copy()
             roi_img_1 = cv2.imread(roi_imgs[j])
@@ -426,6 +472,9 @@ if __name__ == '__main__':
                 # 获取roi的多边形坐标
             poly_roi_img1 = parese_json(roi_imgs[j][:-4] + "-roi.json")['points']
             label_1 = os.path.basename(roi_imgs[j]).split('-')[0]
+
+            if np.random.randint(0 , 2):
+                roi_img_1 , poly_roi_img1 = imageZoom(roi_img_1 , poly_roi_img1 , random.randint(0 , 1))
 
             for j_angle in rotate_angles: # 遍历旋转角度
                 result2 = result.copy()
@@ -468,6 +517,11 @@ if __name__ == '__main__':
                     poly_roi_img2 = parese_json(roi_imgs[k][:-4] + "-roi.json")['points']
                     label_2 = os.path.basename(roi_imgs[k]).split('-')[0]
                     result3 = result2.copy()
+
+                    if np.random.randint(0 , 2):
+                        roi_img_2 , poly_roi_img2 = imageZoom(roi_img_2 , poly_roi_img2 , random.randint(0 , 1))
+
+
                     for k_angle in rotate_angles:
                         rotate_roi_img_2 , rotate_matrix_2 = rotate_image(roi_img_2 , k_angle)
                         rotate_roi_h_2 , rotate_roi_w_2 , _ = rotate_roi_img_2.shape
@@ -545,6 +599,12 @@ if __name__ == '__main__':
                         writer.save(targetFile=imagePath[:-4] + XML_EXT)
 
                         # print('imagePath:', imagePath)
+
+                        if np.random.randint(1 , 11) == 10:
+                            result4 = addPepperNoise(result4)
+                        if np.random.randint(1 , 6) == 3:
+                            result4 = cv2.GaussianBlur(result4 , (5 , 5) , 0)
+
 
                         cv2.imwrite(imagePath, result4)
 

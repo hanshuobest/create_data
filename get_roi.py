@@ -68,101 +68,134 @@ def rotate_image(image , angle):
     M[1 , 2] += int(0.5 * nH) - cy
     return cv2.warpAffine(image , M , (nW , nH)) , M
 
+def imageZoom(img ,poly_pts ,  flag):
+    '''
+    缩放操作
+    :param img:
+    :param poly_pts:
+    :param flag:
+    :return:
+    '''
+    img_h , img_w = img.shape[:2]
+    new_h = 0
+    new_w = 0
+
+    if flag == 1:
+        new_h = int(1.1 * img_h)
+        new_w = int(1.1 * img_w)
+    else:
+        new_h = int(img_h/1.1)
+        new_w = int(img_w/1.1)
+
+    img2 = cv2.resize(img , (new_w , new_h))
+    new_poly_pts = []
+    for i in poly_pts:
+        new_x = int(new_w * i[0] / float(img_w))
+        new_y = int(new_h * i[1] / float(img_h))
+        new_poly_pts.append([new_x, new_y])
+    return  img2 , new_poly_pts
+
+def addPepperNoise(src):
+    '''
+    添加椒盐噪声
+    :param src:
+    :return:
+    '''
+    img_h , img_w = src.shape[:2]
+    new_img = src.copy()
+    NoiseNum = int(0.01 * img_h * img_w)
+    for i in range(NoiseNum):
+        randX = np.random.randint(0 , img_w - 1)
+        randY = np.random.randint(0 , img_h - 1)
+        if np.random.randint(0 , 2) == 0:
+            new_img[randY , randX] = [0 , 0 , 0]
+        else:
+            new_img[randY, randX] = [255, 255, 255]
+
+    return new_img
 
 
 if __name__ == '__main__':
-    json_lst = glob.glob(os.path.join(os.getcwd() , "sku") + "/*.json")
-    img_lst =  glob.glob(os.path.join(os.getcwd() , "sku") + "/*.png")
+    # json_lst = glob.glob(os.path.join(os.getcwd() , "sku") + "/*.json")
+    # img_lst =  glob.glob(os.path.join(os.getcwd() , "sku") + "/*.png")
+    #
+    # assert len(json_lst) == len(img_lst)
+    #
+    # roi_path = "sku/roi"
+    # if os.path.exists(roi_path):
+    #     shutil.rmtree(roi_path)
+    # else:
+    #     os.mkdir(roi_path)
+    # if os.path.isdir(roi_path):
+    #     pass
+    # else:
+    #     os.mkdir(roi_path)
+    #
+    # for j_info in json_lst:
+    #     json_info = parese_json(j_info)
+    #     polygon_points = json_info["shapes"][0]["points"]
+    #     label = json_info["shapes"][0]["label"]
+    #     imagePath = os.path.join(os.getcwd() , "sku") + "/" + os.path.basename(json_info['imagePath'])
+    #
+    #     img = cv2.imread(imagePath)
+    #     if type(img) == type(None):
+    #         print "打开图片失败！"
+    #         break
+    #     img_h , img_w , _ = img.shape
+    #     pts = np.array(polygon_points , dtype=np.int32)
+    #     x , y , w , h = cv2.boundingRect(pts)
+    #     # cv2.rectangle(img , (x , y) , (x + w , y + h) , (255 , 0 , 0) , thickness=2)
+    #     for i in range(y , y + h):
+    #         for j in range(x , x + w):
+    #
+    #             is_flag = isInPolygon_2(polygon_points , [j , i])
+    #             # print('flag:' , is_flag)
+    #             if is_flag:
+    #                 continue
+    #             else:
+    #                 img[i , j] = [0 , 0 , 0]
+    #
+    #     imgROI = img[y : y + h , x : x + w , :]
+    #     roi_polygon_points = []
+    #     for pp in polygon_points:
+    #         roi_polygon_points.append([pp[0] - x , pp[1] - y])
+    #
+    #     roi_json = {}
+    #     roi_json["points"] = roi_polygon_points
+    #
+    #     roi_imagePath = roi_path + "/" + os.path.basename(json_info['imagePath'])[:-4] + ".png"
+    #     cv2.imwrite(roi_imagePath , imgROI)
+    #     roi_jsonPath = roi_path + "/" + os.path.basename(json_info['imagePath'])[:-4] + "-" + "roi.json"
+    #     with open(roi_jsonPath , 'w') as json_file:
+    #         json.dump(roi_json , json_file , ensure_ascii=False)
+    #
+    # cv2.waitKey(0)
 
-    assert len(json_lst) == len(img_lst)
 
-    roi_path = "sku/roi"
-    if os.path.exists(roi_path):
-        shutil.rmtree(roi_path)
-    else:
-        os.mkdir(roi_path)
-    if os.path.isdir(roi_path):
-        pass
-    else:
-        os.mkdir(roi_path)
+    roi = cv2.imread("/Users/han/Downloads/bn_exp/sku/roi/37-0.png")
+    if type(roi) == type(None):
+        print '打开图片失败'
 
-    for j_info in json_lst:
-        json_info = parese_json(j_info)
-        polygon_points = json_info["shapes"][0]["points"]
-        label = json_info["shapes"][0]["label"]
-        imagePath = os.path.join(os.getcwd() , "sku") + "/" + os.path.basename(json_info['imagePath'])
+    json_info = parese_json("/Users/han/Downloads/bn_exp/sku/roi/37-0-roi.json")
+    img_h , img_w = roi.shape[:2]
+    pts = np.array(json_info["points"] , dtype=np.int32)
+    pts = pts.reshape((-1 , 1 , 2))
 
-        img = cv2.imread(imagePath)
-        if type(img) == type(None):
-            print "打开图片失败！"
-            break
-        img_h , img_w , _ = img.shape
-        pts = np.array(polygon_points , dtype=np.int32)
-        x , y , w , h = cv2.boundingRect(pts)
-        # cv2.rectangle(img , (x , y) , (x + w , y + h) , (255 , 0 , 0) , thickness=2)
-        for i in range(y , y + h):
-            for j in range(x , x + w):
+    new_img = addPepperNoise(roi)
+    copy_img = new_img.copy()
+    copy_img = cv2.GaussianBlur(copy_img , (5 , 5) , 0)
 
-                is_flag = isInPolygon_2(polygon_points , [j , i])
-                # print('flag:' , is_flag)
-                if is_flag:
-                    continue
-                else:
-                    img[i , j] = [0 , 0 , 0]
-
-        imgROI = img[y : y + h , x : x + w , :]
-        roi_polygon_points = []
-        for pp in polygon_points:
-            roi_polygon_points.append([pp[0] - x , pp[1] - y])
-
-        roi_json = {}
-        roi_json["points"] = roi_polygon_points
-
-        roi_imagePath = roi_path + "/" + os.path.basename(json_info['imagePath'])[:-4] + ".png"
-        cv2.imwrite(roi_imagePath , imgROI)
-        roi_jsonPath = roi_path + "/" + os.path.basename(json_info['imagePath'])[:-4] + "-" + "roi.json"
-        with open(roi_jsonPath , 'w') as json_file:
-            json.dump(roi_json , json_file , ensure_ascii=False)
-
+    cv2.imshow("copy" , copy_img)
+    cv2.imshow("new" , new_img)
     cv2.waitKey(0)
 
 
-    # roi = cv2.imread("/Users/han/Downloads/bn_exp/sku/roi/42-0.png")
-    # if type(roi) == type(None):
-    #     print '打开图片失败'
-    #
-    # json_info = parese_json("/Users/han/Downloads/bn_exp/sku/roi/42-0-roi.json")
-    #
-    # pts = np.array(json_info['points'] , dtype=np.int32)
-    # pts = pts.reshape((-1 , 1 , 2))
-    #
-    # rotate_img , rotate_matrix = rotate_image(roi , 0)
-    # print('matrix:' , np.shape(rotate_matrix))
-    #
-    # # 保存旋转后的多边形坐标
-    # rotate_pts = []
-    # for i in range(pts.shape[0]):
-    #     tmp = np.append(pts[i] , [1]).reshape(3 , 1)
-    #     print('tmp:' , tmp.shape)
-    #
-    #     x_y = np.matmul(rotate_matrix , tmp)
-    #     print('x_y:' , x_y.shape)
-    #     rotate_pts.append([x_y[0][0] , x_y[1][0]])
-    # print(rotate_pts)
-    #
-    # # roi = cv2.polylines(roi, [pts], True, (0, 0, 255))
-    #
-    # rotate_pts = np.array(rotate_pts , dtype=np.int32)
-    # rotate_pts = rotate_pts.reshape((-1 , 1 , 2))
-    # rotate_img = cv2.polylines(rotate_img , [rotate_pts] , True , (0 , 0 , 255))
-    #
-    #
-    #
-    #
-    #
-    # cv2.imshow("roi" , roi)
-    # cv2.imshow("rotate_img" , rotate_img)
-    # cv2.waitKey(0)
+
+
+
+
+
+
 
 
     # img = cv2.imread("/Users/han/Downloads/bn_exp/sku/generate/10-37-0-120-61-0-150.png")
