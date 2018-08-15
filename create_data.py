@@ -326,6 +326,7 @@ def warfPoints(poly_pts , matrix_):
 
 if __name__ == '__main__':
     # 生成模板图像
+    print '开始生成ROI模板'
     json_lst = glob.glob(os.path.join(os.getcwd(), "sku") + "/*.json")
     img_lst = glob.glob(os.path.join(os.getcwd(), "sku") + "/*.png")
 
@@ -378,7 +379,7 @@ if __name__ == '__main__':
         roi_jsonPath = roi_path + "/" + os.path.basename(json_info['imagePath'])[:-4] + "-" + "roi.json"
         with open(roi_jsonPath, 'w') as json_file:
             json.dump(roi_json, json_file, ensure_ascii=False)
-
+    print '模板ROI生成完毕！'
 
     background_imgs = glob.glob(os.path.join(os.getcwd() , "sku" , "background") + "/*.png")
     background_num = len(background_imgs)
@@ -522,10 +523,10 @@ if __name__ == '__main__':
                         iou = maxIou(x1 + 0.5 * w1, y1 + 0.5 * h1, w1, h1, x2 + 0.5 * w2, y2 + 0.5 * h2, w2, h2)
                         if iou < 0.1:
                             continue
-                            print '没有重叠，过滤掉'
+                            # print '没有重叠，过滤掉'
                         elif iou > 0.5:
-                            print '两个bounding box重叠度为：', iou
-                            print '将舍弃该张图像'
+                            # print '两个bounding box重叠度为：', iou
+                            # print '将舍弃该张图像'
                             continue
 
 
@@ -541,7 +542,8 @@ if __name__ == '__main__':
                         writer.addBndBox(x2, y2, x2 + w2, y2 + h2, label_2, 0)
                         writer.save(targetFile=imagePath[:-4] + XML_EXT)
 
-                        print('imagePath:', imagePath)
+                        # print('imagePath:', imagePath)
+                        print('.')
 
                         cv2.imwrite(imagePath, result4)
 
