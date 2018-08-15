@@ -406,7 +406,7 @@ if __name__ == '__main__':
 
     imgFolderName = generate_dir
 
-    rotate_angles = [0 , 30 , 45 , 60 , 90 , 120 , 150]
+    rotate_angles = [0 , 45]
     for i in background_imgs:
         img = cv2.imread(i)
         img_h , img_w , _ = img.shape
