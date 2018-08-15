@@ -9,6 +9,8 @@ import random
 from pascal_voc_io import PascalVocWriter
 from pascal_voc_io import XML_EXT
 import shutil
+from tqdm import tqdm
+
 
 def parese_json(fpath):
     with open(fpath, 'rb') as f:
@@ -414,8 +416,8 @@ if __name__ == '__main__':
 
         pt1_x = np.random.randint(0 , img_w)
         pt1_y = np.random.randint(0 , img_h)
-
-        for j in range(0 , roi_num): # 第一次遍历roi
+        print('.') ,
+        for j in tqdm(range(0 , roi_num)): # 第一次遍历roi
             result = img.copy()
             roi_img_1 = cv2.imread(roi_imgs[j])
             if type(roi_img_1) == type(None):
@@ -543,7 +545,6 @@ if __name__ == '__main__':
                         writer.save(targetFile=imagePath[:-4] + XML_EXT)
 
                         # print('imagePath:', imagePath)
-                        print('.')
 
                         cv2.imwrite(imagePath, result4)
 
