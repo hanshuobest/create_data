@@ -6,6 +6,7 @@ import numpy as np
 import glob
 import shutil
 import sys
+import math
 
 def parese_json(fpath):
     with open(fpath, 'rb') as f:
@@ -17,6 +18,94 @@ def parese_json(fpath):
         # print('label:'  , myjson["shapes"][0]['label'])
         return myjson
 
+
+def update_PolygonPoints(polygon_pts , top_left_pt):
+    '''
+    根据起始点更新多边形的每个顶点
+    author:hanshuo
+    :param polygon_pts: [[x1,y1] , [x2 , y2] ,... [xn , yn]]
+    :param top_left_pt: [x,y]
+    :return:
+    '''
+    num_poly = len(polygon_pts)
+    for i in range(num_poly):
+        polygon_pts[i][0] = int(polygon_pts[i][0]) + top_left_pt[0]
+        polygon_pts[i][1] = int(polygon_pts[i][1]) + top_left_pt[1]
+
+def isLineCross(pt1_1 , pt1_2 , pt2_1 , pt2_2):
+    '''
+    判断两条线是否相交
+    :param pt1_1:
+    :param pt1_2:
+    :param pt2_1:
+    :param pt2_2:
+    :return:True相交
+    '''
+    ret = min(pt1_1[0] , pt1_2[0]) <= max(pt2_1[0] , pt2_2[0]) and min(pt2_1[0] , pt2_2[0]) <= max(pt1_1[0] , pt1_2[0]) and min(pt1_1[1] , pt1_2[1]) <= max(pt2_1[1] , pt2_2[1]) and min(pt2_1[1] , pt2_2[1]) <= max(pt1_1[1] , pt1_2[1])
+    return ret
+
+def isCross(p1 , p2 , p3):
+    '''
+    跨立实验
+    :param p1:
+    :param p2:
+    :param p3:
+    :return:
+    '''
+    x1 = p2[0] - p1[0]
+    y1 = p2[1] - p1[1]
+    x2 = p3[0] - p1[0]
+    y2 = p3[1] - p1[1]
+    return x1 * y2 - x2 * y1
+
+def IsIntersec(p1,p2,p3,p4):
+    '''
+    判断两条直线是否相交
+    :param p1:
+    :param p2:
+    :param p3:
+    :param p4:
+    :return:
+    '''
+    flag = False
+    if isLineCross(p1 , p2 , p3 , p4):
+        if(isCross(p1,p2,p3) * isCross(p1,p2,p4)<=0 and isCross(p3,p4,p1) * isCross(p3,p4,p2) <= 0):
+            flag = True
+        else:
+            flag = False
+    else:
+        flag = False
+    return flag
+
+def getCrossPoint(p1 , p2 , q1 , q2):
+    '''
+    计算两条直线的交点
+    :param pt1:
+    :param pt2:
+    :param pt3:
+    :param pt4:
+    :return:
+    '''
+    jiaodian = []
+    if IsIntersec(p1 , p2 , q1 , q2):
+        # 求交点
+        left = (q2[0] - q1[0]) * (p1[1] - p2[1]) - (p2[0] - p1[0]) * (q1[1] - q2[1])
+        right = (p1[1] - q1[1]) * (p2[0] - p1[0]) * (q2[0] - q1[0]) + q1[0] * (q2[1] - q1[1]) * (p2[0] - p1[0]) - p1[0] * (p2[1] - p1[1]) * (q2[0] - q1[0])
+
+        if left == 0:
+            return jiaodian
+        x = int(float(right)/float(left))
+        left = (p1[0] - p2[0]) * (q2[1] - q1[1]) - (p2[1] - p1[1]) * (q1[0] - q2[0])
+        right = p2[1] * (p1[0] - p2[0]) * (q2[1] - q1[1]) + (q2[0] - p2[0]) * (q2[1] - q1[1]) * (p1[1] - p2[1]) - q2[1] * (q1[0] - q2[0]) * (p2[1] - p1[1])
+        if left == 0:
+            return jiaodian
+        y = int(float(right)/float(left))
+
+        jiaodian.append(x)
+        jiaodian.append(y)
+
+
+    return jiaodian
 
 def isInPolygon_2(polygon_pts , pt):
     '''
@@ -47,6 +136,162 @@ def isInPolygon_2(polygon_pts , pt):
     # 单边交点为偶数，则点在多边形外
     return nCross %2 == 1
 
+def PointCmp(a , b , center):
+    '''
+    若点a大于点b，即点a在点b顺时针方向，返回True，否则返回False
+    :param a:
+    :param b:
+    :param center:
+    :return:
+    '''
+    if a[0] >= 0 and b[0] < 0:
+        return True
+    if a[0] == 0 and b[0] == 0:
+        return a[1] > b[1]
+    # 向量OA和向量OB的叉积
+    det = (a[0] - center[0]) * (b[1] - center[1]) - (b[0] - center[0]) * (a[1] - center[1])
+    if det < 0:
+        return True
+    if det > 0:
+        return False
+
+    # 共线，以A、B距离center的距离判断大小
+    d1 = (a[0] - center[0]) * (a[0] - center[0]) + (a[1] - center[1]) * (a[1] - center[1])
+    d2 = (b[0] - center[0]) * (b[0] - center[0]) + (b[1] - center[1]) * (b[1] - center[1])
+
+    return d1 > d2
+
+def ClockwiseSortpoints(poly_pts):
+    '''
+    点集排序
+    :param poly_pts:
+    :return:
+    '''
+    # 计算重心
+    center = []
+    x = 0
+    y = 0
+    num = len(poly_pts)
+    for i in range(num):
+        x += poly_pts[i][0]
+        y += poly_pts[i][1]
+
+    center.append(int(x/num))
+    center.append(int(y/num))
+
+    # 排序
+    for i in range(num - 1):
+        for j in range(num - i - 1):
+            if PointCmp(poly_pts[j] , poly_pts[j + 1] , center):
+                tmp = poly_pts[j]
+                poly_pts[j] = poly_pts[j + 1]
+                poly_pts[j + 1] = tmp
+
+
+def getPolygonCrossPoint(poly_pts1 , poly_pts2):
+    '''
+    计算两个多边形的交点
+    :param poly_pts1:
+    :param poly_pts2:
+    :return:
+    '''
+    jiaodian = set()
+    num1 = len(poly_pts1)
+    num2 = len(poly_pts2)
+    if num1 <3 or num2 < 3:
+        return list(jiaodian)
+    for i in range(num1):
+        poly_next_idx = (i + 1) % num1
+        for j in range(num2):
+            poly2_next_idx = (j + 1) % num2
+            pt = getCrossPoint(poly_pts1[i] , poly_pts1[poly_next_idx] , poly_pts2[j] , poly_pts2[poly2_next_idx])
+
+            if pt:
+                jiaodian.add(tuple(pt))
+    jiaodian = list(jiaodian)
+
+    # 如果没有交点
+    if len(jiaodian) == 0:
+        return jiaodian
+    else:
+        for j in jiaodian:
+            j = list(j)
+    return jiaodian
+
+
+def updatePolygon(polygon_pts1 , polygon_pts2 , cross_pts):
+    '''
+    根据两个多边形相交，重新计算其重叠后的多边形
+    :param polygon_pts1:
+    :param polygon_pts2:
+    :return:
+    '''
+    # random_seed = random.randint(0 , 1)
+    # # 如果random_seed等于0 则poly1覆盖poly2，如果random_seed等于1，则poly2覆盖poly1
+
+    new_poly1 = []
+    new_poly2 = []
+    new_poly2 = polygon_pts2
+    for i in cross_pts:
+        new_poly1.append(i)
+    for j in polygon_pts1:
+        if isInPolygon_2(polygon_pts2 , j):
+            continue
+        new_poly1.append(j)
+    ClockwiseSortpoints(new_poly1)
+
+    return new_poly1 , new_poly2
+
+
+def calcIOU(x1, y1, w1, h1, x2, y2, w2, h2):
+    '''
+
+    :param x1:center_x
+    :param y1:center_y
+    :param w1:
+    :param h1:
+    :param x2:
+    :param y2:
+    :param w2:
+    :param h2:
+    :return:
+    '''
+    IOU = 0
+    if ((abs(x1 - x2) < ((w1 + w2) / 2.0)) and (abs(y1 - y2) < ((h1 + h2) / 2.0))):
+        left = max((x1 - (w1 / 2.0)), (x2 - (w2 / 2.0)))
+        upper = max((y1 - (h1 / 2.0)), (y2 - (h2 / 2.0)))
+
+        right = min((x1 + (w1 / 2.0)), (x2 + (w2 / 2.0)))
+        bottom = min((y1 + (h1 / 2.0)), (y2 + (h2 / 2.0)))
+        inter_w = abs(left - right)
+        inter_h = abs(upper - bottom)
+        inter_square = inter_w * inter_h
+        union_square = (w1 * h1) + (w2 * h2) - inter_square
+        IOU = inter_square / union_square * 1.0
+
+    return IOU
+
+
+def maxIou(x1, y1, w1, h1, x2, y2, w2, h2):
+    IOU = 0
+    if ((abs(x1 - x2) < ((w1 + w2) / 2.0)) and (abs(y1 - y2) < ((h1 + h2) / 2.0))):
+        left = max((x1 - (w1 / 2.0)), (x2 - (w2 / 2.0)))
+        upper = max((y1 - (h1 / 2.0)), (y2 - (h2 / 2.0)))
+        right = min((x1 + (w1 / 2.0)), (x2 + (w2 / 2.0)))
+        bottom = min((y1 + (h1 / 2.0)), (y2 + (h2 / 2.0)))
+        inter_w = abs(left - right)
+        inter_h = abs(upper - bottom)
+        inter_square = inter_w * inter_h
+        area1 = w1 * h1
+        area2 = w2 * h2
+        iou1 = float(inter_square) / area1
+        iou2 = float(inter_square) / area2
+        if iou1 > iou2:
+            return iou1
+        else:
+            return iou2
+    return IOU
+
 def rotate_image(image , angle):
     '''
     图像旋转
@@ -67,6 +312,20 @@ def rotate_image(image , angle):
     M[0 , 2] += int(0.5 * nW) - cx
     M[1 , 2] += int(0.5 * nH) - cy
     return cv2.warpAffine(image , M , (nW , nH)) , M
+
+def warfPoints(poly_pts , matrix_):
+    '''
+    对多边形点进行仿射变换
+    :param poly_pts:
+    :param matrix_:
+    :return:
+    '''
+    rotate_pts = []
+    for i in range(len(poly_pts)):
+        tmp = np.append(poly_pts[i] , [1]).reshape((3 , 1))
+        x_y = np.matmul(matrix_ , tmp)
+        rotate_pts.append([x_y[0][0] , x_y[1][0]])
+    return rotate_pts
 
 def imageZoom(img ,poly_pts ,  flag):
     '''
@@ -103,7 +362,7 @@ def addPepperNoise(src):
     '''
     img_h , img_w = src.shape[:2]
     new_img = src.copy()
-    NoiseNum = int(0.01 * img_h * img_w)
+    NoiseNum = int(0.001 * img_h * img_w)
     for i in range(NoiseNum):
         randX = np.random.randint(0 , img_w - 1)
         randY = np.random.randint(0 , img_h - 1)
@@ -113,6 +372,62 @@ def addPepperNoise(src):
             new_img[randY, randX] = [255, 255, 255]
 
     return new_img
+
+def getLineLength(p1 , p2):
+    l = math.pow((p1[0] - p2[0]) , 2) + math.pow((p1[1] - p2[1]) , 2)
+    l = math.sqrt(l)
+
+    return l
+
+def getAreaOfTraingle(p1 , p2 , p3):
+    '''
+    海伦公式，计算三角形面积
+    :param p1:
+    :param p2:
+    :param p3:
+    :return:
+    '''
+    area = 0
+    p1p2 = getLineLength(p1 , p2)
+    p2p3 = getLineLength(p2 , p3)
+    p3p1 = getLineLength(p3 , p1)
+
+    s = (p1p2 + p2p3 + p3p1) * 0.5
+
+    # 海伦公式
+    area = s * (s - p1p2) * (s - p2p3) * (s - p3p1)
+    area = math.sqrt(area)
+    return area
+
+
+
+def getAreaPoly(points):
+    area = 0
+    num = len(points)
+    if num < 3:
+        raise Exception('error')
+
+    p1 = points[0]
+    for i in range(1 , num - 1):
+        p2 = points[i]
+        p3 = points[i + 1]
+
+        vec_p1p2 = (p2[0] - p1[0] , p2[1] - p1[1])
+        vec_p2p3 = (p3[0] - p2[0] , p3[1] - p2[1])
+
+        sign = 0
+
+        # 判断正负
+        vecMult = vec_p1p2[0] * vec_p2p3[1] - vec_p1p2[1] * vec_p2p3[0]
+        if vecMult > 0:
+            sign = 1
+        elif vecMult < 0:
+            sign = -1
+        triArea = getAreaOfTraingle(p1 , p2 , p3) * sign
+
+        area += triArea
+    return abs(area)
+
 
 
 if __name__ == '__main__':
@@ -172,28 +487,22 @@ if __name__ == '__main__':
     # cv2.waitKey(0)
 
 
-    roi = cv2.imread("/Users/han/Downloads/bn_exp/sku/roi/37-0.png")
-    if type(roi) == type(None):
-        print '打开图片失败'
-
-    json_info = parese_json("/Users/han/Downloads/bn_exp/sku/roi/37-0-roi.json")
-    img_h , img_w = roi.shape[:2]
-    pts = np.array(json_info["points"] , dtype=np.int32)
-    pts = pts.reshape((-1 , 1 , 2))
-
-    new_img = addPepperNoise(roi)
-    copy_img = new_img.copy()
-    copy_img = cv2.GaussianBlur(copy_img , (5 , 5) , 0)
-
-    cv2.imshow("copy" , copy_img)
-    cv2.imshow("new" , new_img)
-    cv2.waitKey(0)
-
-
-
-
-
-
+    # roi = cv2.imread("/Users/han/Downloads/bn_exp/sku/roi/37-0.png")
+    # if type(roi) == type(None):
+    #     print '打开图片失败'
+    #
+    # json_info = parese_json("/Users/han/Downloads/bn_exp/sku/roi/37-0-roi.json")
+    # img_h , img_w = roi.shape[:2]
+    # pts = np.array(json_info["points"] , dtype=np.int32)
+    # pts = pts.reshape((-1 , 1 , 2))
+    #
+    # new_img = addPepperNoise(roi)
+    # copy_img = new_img.copy()
+    # copy_img = cv2.GaussianBlur(copy_img , (5 , 5) , 0)
+    #
+    # cv2.imshow("copy" , copy_img)
+    # cv2.imshow("new" , new_img)
+    # cv2.waitKey(0)
 
 
 
@@ -236,6 +545,111 @@ if __name__ == '__main__':
     #
     # cv2.imshow("img" , img)
     # cv2.waitKey(0)
+
+
+    img = cv2.imread("/Users/han/create_data/8-37-0-0-37-0-90.png")
+    if type(img) == type(None):
+        sys.exit(1)
+
+    json_info = parese_json("8-37-0-0-37-0-90.json")
+    pts_1 = json_info['shapes'][0]['points']
+    pts_2 = json_info['shapes'][1]['points']
+
+
+    img3 = img.copy()
+
+
+    array_pt1 = np.array(pts_1 , dtype=np.int32)
+    array_pt2 = np.array(pts_2 , dtype=np.int32)
+    array_pt1 = array_pt1.reshape((-1 , 1 , 2))
+    array_pt2 = array_pt2.reshape((-1 , 1 , 2))
+
+    cv2.polylines(img , [array_pt1] , True , (0 , 0, 255))
+    cv2.polylines(img , [array_pt2] , True , (0 , 255 , 0))
+    # cv2.imshow("img" , img)
+    # cv2.waitKey(0)
+
+
+    jiaodian = getPolygonCrossPoint(pts_1 , pts_2)
+    # 获取每个交点的索引位置
+    indexs = []
+    for i in jiaodian:
+        index = pts_1.index(list(i))
+        indexs.append(index)
+
+    indexs.sort()
+
+
+    pt_lsts = [[] for i in range(0 , len(indexs))]
+
+    pt_lsts[1] = pts_1[indexs[0]:indexs[1] + 1]
+
+    pt_lsts[2] = pts_1[indexs[1]:indexs[2] + 1]
+    pt_lsts[3] = pts_1[indexs[2]:indexs[3] + 1]
+
+    other_1 = pts_1[:indexs[0] + 1]
+    other_2 = pts_1[indexs[3]:]
+
+    other_set = set()
+    num1 = len(other_1)
+    num2 = len(other_2)
+
+    if num1 == 0 and num2 != 0:
+        other_set = list(other_2)
+    elif num2 == 0 and num1 != 0:
+        other_set = list(other_1)
+    elif num1 != 0 and num2 != 0:
+        for i in range(num1):
+            other_set.add(tuple(other_1[i]))
+        for i in range(num2):
+            other_set.add(tuple(other_2[i]))
+    pt_lsts[0] = list(other_set)
+
+
+    pt_total = [[519, 624], [508, 619], [499, 584], [487, 558], [490, 399], [552, 398], [556, 512], [564, 553], [559, 560]]
+
+    array_fuck = np.array(pts_2 , dtype=np.int32)
+    array_fuck = array_fuck.reshape((-1 , 1 , 2))
+    cv2.polylines(img3 , [array_fuck] , True , (0 , 0 ,255))
+    # cv2.imshow("img3" , img3)
+    # cv2.waitKey(0)
+
+
+    print('pts_1:' , pts_1)
+    total_area = getAreaPoly(pts_1)
+    print('total_area:' , total_area)
+    # for i in pt_lsts:
+    #     print(len(i))
+    #     if len(i) < 3:
+    #         # pt_lsts.remove(i)
+    #         continue
+    #     area = getAreaPoly(i)
+    #     print('area:' , area)
+
+
+    fuck_arrays = [[0 , 0] , [1 , 0] , [0 , 1]]
+    print(getAreaPoly(fuck_arrays))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

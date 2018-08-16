@@ -198,11 +198,11 @@ def getPolygonCrossPoint(poly_pts1 , poly_pts2):
     :param poly_pts2:
     :return:
     '''
-    jiaodian = []
+    jiaodian = set()
     num1 = len(poly_pts1)
     num2 = len(poly_pts2)
     if num1 <3 or num2 < 3:
-        return jiaodian
+        return list(jiaodian)
     for i in range(num1):
         poly_next_idx = (i + 1) % num1
         for j in range(num2):
@@ -210,12 +210,16 @@ def getPolygonCrossPoint(poly_pts1 , poly_pts2):
             pt = getCrossPoint(poly_pts1[i] , poly_pts1[poly_next_idx] , poly_pts2[j] , poly_pts2[poly2_next_idx])
 
             if pt:
-                jiaodian.append(pt)
+                jiaodian.add(tuple(pt))
+    jiaodian = list(jiaodian)
+
     # 如果没有交点
     if len(jiaodian) == 0:
         return jiaodian
+    else:
+        for j in jiaodian:
+            j = list(j)
     return jiaodian
-
 
 def updatePolygon(polygon_pts1 , polygon_pts2 , cross_pts):
     '''
@@ -440,7 +444,7 @@ if __name__ == '__main__':
     if roi_num <= 1:
         print '没有足够的roi图片'
         sys.exit(1)
-
+    roi_num = 2
     generate_dir = os.path.join(os.getcwd() , "sku" , "generate")
     if os.path.exists(generate_dir):
         shutil.rmtree(generate_dir)
@@ -454,8 +458,8 @@ if __name__ == '__main__':
 
     imgFolderName = generate_dir
 
-    rotate_angles = [0 , 45]
-    for i in background_imgs:
+    rotate_angles = [0 , 30 , 60 , 90 , 120 , 150]
+    for i in [background_imgs[0]]:
         img = cv2.imread(i)
         img_h , img_w , _ = img.shape
 
@@ -577,13 +581,13 @@ if __name__ == '__main__':
                         # cv2.rectangle(img , (x2 , y2) , (x2 + w2 , y2 + h2) , (0 , 255 , 0) , 1)
 
                         iou = maxIou(x1 + 0.5 * w1, y1 + 0.5 * h1, w1, h1, x2 + 0.5 * w2, y2 + 0.5 * h2, w2, h2)
-                        if iou < 0.1:
-                            continue
-                            # print '没有重叠，过滤掉'
-                        elif iou > 0.5:
-                            # print '两个bounding box重叠度为：', iou
-                            # print '将舍弃该张图像'
-                            continue
+                        # if iou < 0.1:
+                        #     continue
+                        #     # print '没有重叠，过滤掉'
+                        # elif iou > 0.5:
+                        #     # print '两个bounding box重叠度为：', iou
+                        #     # print '将舍弃该张图像'
+                        #     continue
 
 
                         # cv2.polylines(img , [poly1] , True , (255 , 0 , 0) , 1)
@@ -597,8 +601,6 @@ if __name__ == '__main__':
                         writer.addBndBox(x1, y1, x1 + w1, y1 + h1, label_1, 0)
                         writer.addBndBox(x2, y2, x2 + w2, y2 + h2, label_2, 0)
                         writer.save(targetFile=imagePath[:-4] + XML_EXT)
-
-                        # print('imagePath:', imagePath)
 
                         if np.random.randint(1 , 11) == 10:
                             result4 = addPepperNoise(result4)
