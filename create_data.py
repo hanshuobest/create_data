@@ -10,6 +10,7 @@ from pascal_voc_io import PascalVocWriter
 from pascal_voc_io import XML_EXT
 import shutil
 from tqdm import tqdm
+import math
 
 
 def parese_json(fpath):
@@ -374,6 +375,63 @@ def addPepperNoise(src):
             new_img[randY, randX] = [255, 255, 255]
 
     return new_img
+
+def getLineLength(p1 , p2):
+    l = math.pow((p1[0] - p2[0]) , 2) + math.pow((p1[1] - p2[1]) , 2)
+    l = math.sqrt(l)
+
+    return l
+
+def getAreaOfTraingle(p1 , p2 , p3):
+    '''
+    海伦公式，计算三角形面积
+    :param p1:
+    :param p2:
+    :param p3:
+    :return:
+    '''
+    area = 0
+    p1p2 = getLineLength(p1 , p2)
+    p2p3 = getLineLength(p2 , p3)
+    p3p1 = getLineLength(p3 , p1)
+
+    s = (p1p2 + p2p3 + p3p1) * 0.5
+
+    # 海伦公式
+    area = s * (s - p1p2) * (s - p2p3) * (s - p3p1)
+    area = math.sqrt(area)
+    return area
+
+
+
+def getAreaPoly(points):
+    area = 0
+    num = len(points)
+    if num < 3:
+        raise Exception('error')
+
+    p1 = points[0]
+    for i in range(1 , num - 1):
+        p2 = points[i]
+        p3 = points[i + 1]
+
+        vec_p1p2 = (p2[0] - p1[0] , p2[1] - p1[1])
+        vec_p2p3 = (p3[0] - p2[0] , p3[1] - p2[1])
+
+        sign = 0
+
+        # 判断正负
+        vecMult = vec_p1p2[0] * vec_p2p3[1] - vec_p1p2[1] * vec_p2p3[0]
+        if vecMult > 0:
+            sign = 1
+        elif vecMult < 0:
+            sign = -1
+        triArea = getAreaOfTraingle(p1 , p2 , p3) * sign
+
+        area += triArea
+    return abs(area)
+
+
 
 
 if __name__ == '__main__':
