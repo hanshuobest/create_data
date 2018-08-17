@@ -161,6 +161,33 @@ def PointCmp(a , b , center):
 
     return d1 > d2
 
+def getGravity(pts):
+    '''
+    计算多边形重心
+    :param pts:
+    :return:
+    '''
+    area = 0
+    center = []
+    num = len(pts)
+    x = 0
+    y = 0
+    for i in range(num - 1):
+        area += (pts[i][0] * pts[i + 1][1] - pts[i + 1][0] * pts[i][1]) * 0.5
+        x += (pts[i][0] * pts[i + 1][1] - pts[i + 1][0] * pts[i][1]) * (pts[i][0] + pts[i + 1][0])
+        y += (pts[i][0] * pts[i + 1][1] - pts[i + 1][0] * pts[i][1]) * (pts[i][1] + pts[i + 1][1])
+
+    area += (pts[num - 1][0] * pts[0][1] - pts[0][0] * pts[num - 1][1]) * 0.5
+    x += (pts[num - 1][0] * pts[0][1] - pts[0][0] * pts[num - 1][1]) * (pts[num - 1][0] + pts[0][0])
+    y += (pts[num - 1][0] * pts[0][1] - pts[0][0] * pts[num - 1][1]) * (pts[num - 1][1] + pts[0][1])
+
+    x /= 6 * area
+    y /= 6 * area
+
+    center.append(x)
+    center.append(y)
+    return center
+
 def ClockwiseSortpoints(poly_pts):
     '''
     点集排序
@@ -178,14 +205,16 @@ def ClockwiseSortpoints(poly_pts):
 
     center.append(int(x/num))
     center.append(int(y/num))
+    new_polys = poly_pts
 
     # 排序
     for i in range(num - 1):
         for j in range(num - i - 1):
-            if PointCmp(poly_pts[j] , poly_pts[j + 1] , center):
-                tmp = poly_pts[j]
-                poly_pts[j] = poly_pts[j + 1]
-                poly_pts[j + 1] = tmp
+            if PointCmp(new_polys[j] , new_polys[j + 1] , center):
+                tmp = new_polys[j]
+                new_polys[j] = new_polys[j + 1]
+                new_polys[j + 1] = tmp
+    return new_polys
 
 
 def getPolygonCrossPoint(poly_pts1 , poly_pts2):
@@ -428,6 +457,57 @@ def getAreaPoly(points):
         area += triArea
     return abs(area)
 
+def optimizerPolygon(jiaodian , pts1):
+    '''
+    根据交点优化pts1组成的多边形
+    :param jiaodian:
+    :param pts1:
+    :return:
+    '''
+
+    assert len(jiaodian) == 4
+    indexs = []
+    for i in jiaodian:
+        index = pts1.index(list(i))
+        indexs.append(index)
+    indexs.sort()
+    print('indexs:' , indexs)
+
+    pt_lsts = [[] for i in range(4)]
+    pt_lsts[1] = pts1[indexs[0]:indexs[1] + 1]
+
+    pt_lsts[2] = pts1[indexs[1]:indexs[2] + 1]
+    pt_lsts[3] = pts1[indexs[2]:indexs[3] + 1]
+
+    other_1 = pts1[:indexs[0] + 1]
+    other_2 = pts1[indexs[3]:]
+
+    other_set = set()
+    num1 = len(other_1)
+    num2 = len(other_2)
+    if num1 == 0 and num2 != 0:
+        other_set = list(other_2)
+    elif num2 == 0 and num1 != 0:
+        other_set = list(other_1)
+    elif num1 != 0 and num2 != 0:
+        for i in range(num1):
+            other_set.add(tuple(other_1[i]))
+        for i in range(num2):
+            other_set.add(tuple(other_2[i]))
+    pt_lsts[0] = list(other_set)
+
+    total_area = getAreaPoly(pts1)
+    for i in pt_lsts:
+        if len(i) < 3:
+            continue
+        area = getAreaPoly(i)
+        ratio = float(area) / total_area
+        if ratio < 0.33:
+            continue
+        else:
+            pts1 = i
+    return pts1
+
 
 
 if __name__ == '__main__':
@@ -547,88 +627,68 @@ if __name__ == '__main__':
     # cv2.waitKey(0)
 
 
-    img = cv2.imread("/Users/han/create_data/8-37-0-0-37-0-90.png")
-    if type(img) == type(None):
-        sys.exit(1)
-
-    json_info = parese_json("8-37-0-0-37-0-90.json")
-    pts_1 = json_info['shapes'][0]['points']
-    pts_2 = json_info['shapes'][1]['points']
-
-
-    img3 = img.copy()
-
-
-    array_pt1 = np.array(pts_1 , dtype=np.int32)
-    array_pt2 = np.array(pts_2 , dtype=np.int32)
-    array_pt1 = array_pt1.reshape((-1 , 1 , 2))
-    array_pt2 = array_pt2.reshape((-1 , 1 , 2))
-
-    cv2.polylines(img , [array_pt1] , True , (0 , 0, 255))
-    cv2.polylines(img , [array_pt2] , True , (0 , 255 , 0))
+    # img = cv2.imread("/Users/han/create_data/8-37-0-0-37-0-90.png")
+    # if type(img) == type(None):
+    #     sys.exit(1)
+    #
+    # json_info = parese_json("8-37-0-0-37-0-90.json")
+    # pts_1 = json_info['shapes'][0]['points']
+    # pts_2 = json_info['shapes'][1]['points']
+    #
+    #
+    # img3 = img.copy()
+    #
+    #
+    # array_pt1 = np.array(pts_1 , dtype=np.int32)
+    # array_pt2 = np.array(pts_2 , dtype=np.int32)
+    # array_pt1 = array_pt1.reshape((-1 , 1 , 2))
+    # array_pt2 = array_pt2.reshape((-1 , 1 , 2))
+    #
+    # x0 , y0 , w0 , h0 = cv2.boundingRect(array_pt1)
+    # x2 , y2 , w2 , h2 = cv2.boundingRect(array_pt2)
+    #
+    # # cv2.rectangle(img , (x0 , y0) , (x0 + w0 , y0 + h0) , (0 , 255 , 0) , 2)
+    # cv2.rectangle(img , (x2 , y2) , (x2 + w2 , y2 + h2) , (255 , 0 , 0) , 2)
+    #
+    #
+    # jiaodian = getPolygonCrossPoint(pts_1 , pts_2)
+    #
+    # print('pts_1:' , pts_1)
+    # pts_1 = optimizerPolygon(jiaodian , pts_1)
+    # print('pts_1:' , pts_1)
+    #
+    #
+    # pts_1 = np.array(pts_1 , dtype=np.int32)
+    # pts_1 = pts_1.reshape((-1 , 1, 2))
+    #
+    # x1 , y1 , w1 , h1 = cv2.boundingRect(pts_1)
+    # cv2.rectangle(img , (x1 , y1) , (x1 + w1 , y1 + h1) , (0 , 0 , 255) , 2)
     # cv2.imshow("img" , img)
     # cv2.waitKey(0)
 
 
-    jiaodian = getPolygonCrossPoint(pts_1 , pts_2)
-    # 获取每个交点的索引位置
-    indexs = []
-    for i in jiaodian:
-        index = pts_1.index(list(i))
-        indexs.append(index)
 
-    indexs.sort()
+    img = np.zeros(shape=(600 , 600 , 3) , dtype=np.uint8)
 
+    pts = [[50 , 50] , [150 , 150] , [150 , 50] , [50 , 150]]
 
-    pt_lsts = [[] for i in range(0 , len(indexs))]
+    pts = ClockwiseSortpoints(pts)
+    for i in pts:
+        cv2.circle(img , (i[0] , i[1]) , 5 , (255 , 0 , 0) , 1)
 
-    pt_lsts[1] = pts_1[indexs[0]:indexs[1] + 1]
+    array_pts = np.array(pts , dtype=np.int32)
+    array_pts = array_pts.reshape((-1 , 1 ,2))
+    cv2.polylines(img , [array_pts] , True , (0 , 0 , 255) , 2)
 
-    pt_lsts[2] = pts_1[indexs[1]:indexs[2] + 1]
-    pt_lsts[3] = pts_1[indexs[2]:indexs[3] + 1]
+    cv2.findContours()
 
-    other_1 = pts_1[:indexs[0] + 1]
-    other_2 = pts_1[indexs[3]:]
-
-    other_set = set()
-    num1 = len(other_1)
-    num2 = len(other_2)
-
-    if num1 == 0 and num2 != 0:
-        other_set = list(other_2)
-    elif num2 == 0 and num1 != 0:
-        other_set = list(other_1)
-    elif num1 != 0 and num2 != 0:
-        for i in range(num1):
-            other_set.add(tuple(other_1[i]))
-        for i in range(num2):
-            other_set.add(tuple(other_2[i]))
-    pt_lsts[0] = list(other_set)
+    cv2.imshow("img" , img)
+    cv2.waitKey(0)
 
 
-    pt_total = [[519, 624], [508, 619], [499, 584], [487, 558], [490, 399], [552, 398], [556, 512], [564, 553], [559, 560]]
-
-    array_fuck = np.array(pts_2 , dtype=np.int32)
-    array_fuck = array_fuck.reshape((-1 , 1 , 2))
-    cv2.polylines(img3 , [array_fuck] , True , (0 , 0 ,255))
-    # cv2.imshow("img3" , img3)
-    # cv2.waitKey(0)
 
 
-    print('pts_1:' , pts_1)
-    total_area = getAreaPoly(pts_1)
-    print('total_area:' , total_area)
-    # for i in pt_lsts:
-    #     print(len(i))
-    #     if len(i) < 3:
-    #         # pt_lsts.remove(i)
-    #         continue
-    #     area = getAreaPoly(i)
-    #     print('area:' , area)
 
-
-    fuck_arrays = [[0 , 0] , [1 , 0] , [0 , 1]]
-    print(getAreaPoly(fuck_arrays))
 
 
 
