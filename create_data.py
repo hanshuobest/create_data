@@ -634,7 +634,7 @@ if __name__ == '__main__':
                         if len(jiaodian) == 0:
                             continue
 
-                        print('jiaodian length:' , len(jiaodian))
+                        # print('jiaodian length:' , len(jiaodian))
                         ClockwiseSortpoints(jiaodian)
 
                         # jiaodian_array = np.array(jiaodian , dtype=np.int32)
