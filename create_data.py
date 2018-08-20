@@ -502,7 +502,6 @@ if __name__ == '__main__':
     if roi_num <= 1:
         print '没有足够的roi图片'
         sys.exit(1)
-    roi_num = 2
     generate_dir = os.path.join(os.getcwd() , "sku" , "generate")
     if os.path.exists(generate_dir):
         shutil.rmtree(generate_dir)
@@ -517,15 +516,18 @@ if __name__ == '__main__':
     imgFolderName = generate_dir
 
     rotate_angles = [0 , 30 , 60 , 90 , 120 , 150]
-    for i in [background_imgs[0]]:
-        img = cv2.imread(i)
+    for i in tqdm(range(len(background_imgs))):
+        img = cv2.imread(background_imgs[i])
         img_h , img_w , _ = img.shape
 
 
         pt1_x = np.random.randint(0 , img_w)
         pt1_y = np.random.randint(0 , img_h)
 
-        for j in tqdm(range(0 , roi_num)): # 第一次遍历roi
+
+        roi_index1 = np.random.choice(range(roi_num) , int(roi_num * 0.2) , replace=False)
+
+        for j in roi_index1: # 第一次遍历roi
             result = img.copy()
             roi_img_1 = cv2.imread(roi_imgs[j])
             if type(roi_img_1) == type(None):
@@ -535,13 +537,15 @@ if __name__ == '__main__':
             poly_roi_img1 = parese_json(roi_imgs[j][:-4] + "-roi.json")['points']
             label_1 = os.path.basename(roi_imgs[j]).split('-')[0]
 
+            # 图片缩放
             if np.random.randint(0 , 2):
                 roi_img_1 , poly_roi_img1 = imageZoom(roi_img_1 , poly_roi_img1 , random.randint(0 , 1))
 
-            for j_angle in rotate_angles: # 遍历旋转角度
+            rotate_angles_index1 = np.random.choice(rotate_angles , 2 , replace=False)
+            # 遍历旋转角度
+            for j_angle in rotate_angles_index1:
                 result2 = result.copy()
                 rotate_roi_img_1 , rotate_matrix_1 = rotate_image(roi_img_1 , j_angle)
-
                 rotate_roi_h_1, rotate_roi_w_1, _ = rotate_roi_img_1.shape
 
                 if (pt1_x + rotate_roi_w_1) > img_w:
@@ -549,6 +553,7 @@ if __name__ == '__main__':
                 if (pt1_y + rotate_roi_h_1) > img_h:
                     pt1_y = img_h - rotate_roi_h_1
                 poly_roi_img1 = np.array(poly_roi_img1 , dtype=np.int32)
+                # 根据仿射变换计算旋转后的轮廓点
                 rotate_poly_roi_img1 = warfPoints(poly_roi_img1 , rotate_matrix_1)
                 update_PolygonPoints(rotate_poly_roi_img1, [pt1_x, pt1_y])
                 rotate_roi_1 = result2[pt1_y: pt1_y + rotate_roi_h_1, pt1_x: pt1_x + rotate_roi_w_1, :]
@@ -569,7 +574,9 @@ if __name__ == '__main__':
                 # with open(json_img_angle , 'w') as json_file:
                 #     json.dump(json_img_angle_points , json_file , ensure_ascii=False)
 
-                for k in range(0 , roi_num): # 第二次遍历roi
+
+                roi_index2 = np.random.choice(range(roi_num) , int(0.2 * roi_num) , replace=False)
+                for k in roi_index2: # 第二次遍历roi
                     roi_img_2 = cv2.imread(roi_imgs[k])
                     if type(roi_img_2) == type(None):
                         print '读取roi图片失败'
@@ -583,12 +590,12 @@ if __name__ == '__main__':
                     if np.random.randint(0 , 2):
                         roi_img_2 , poly_roi_img2 = imageZoom(roi_img_2 , poly_roi_img2 , random.randint(0 , 1))
 
-
-                    for k_angle in rotate_angles:
+                    rotate_angles_index2 = np.random.choice(rotate_angles, 2, replace=False)
+                    for k_angle in rotate_angles_index2:
                         rotate_roi_img_2 , rotate_matrix_2 = rotate_image(roi_img_2 , k_angle)
                         rotate_roi_h_2 , rotate_roi_w_2 , _ = rotate_roi_img_2.shape
 
-                        pt2_x = np.random.randint(pt1_x, pt1_x + rotate_roi_w_1)
+                        pt2_x = np.random.randint(pt1_x - rotate_roi_w_1 , pt1_x + rotate_roi_w_1)
                         pt2_y = np.random.randint(pt1_y - rotate_roi_h_2, pt1_y + rotate_roi_h_1)
 
                         if (pt2_x + rotate_roi_w_2) > img_w:
@@ -597,6 +604,8 @@ if __name__ == '__main__':
                             pt2_y = img_h - rotate_roi_h_2
                         if pt2_y < 0:
                             pt2_y = 0
+                        if pt2_x <= 0:
+                            pt2_x = 0
 
                         poly_roi_img2 = np.array(poly_roi_img2 , dtype=np.int32)
                         rotate_poly_roi_img2 = warfPoints(poly_roi_img2 , rotate_matrix_2)
@@ -625,6 +634,14 @@ if __name__ == '__main__':
                         if len(jiaodian) == 0:
                             continue
 
+                        print('jiaodian length:' , len(jiaodian))
+                        ClockwiseSortpoints(jiaodian)
+
+                        # jiaodian_array = np.array(jiaodian , dtype=np.int32)
+                        # jiaodian_array =  jiaodian_array.reshape((-1 , 1 , 2))
+                        # cv2.polylines(result4 , [jiaodian_array] , True , (0 , 0 , 255) , 2)
+
+
                         poly1, poly2 = updatePolygon(rotate_poly_roi_img1, rotate_poly_roi_img2, jiaodian)
 
                         poly1 = np.array(poly1, dtype=np.int32)
@@ -639,19 +656,18 @@ if __name__ == '__main__':
                         # cv2.rectangle(img , (x2 , y2) , (x2 + w2 , y2 + h2) , (0 , 255 , 0) , 1)
 
                         iou = maxIou(x1 + 0.5 * w1, y1 + 0.5 * h1, w1, h1, x2 + 0.5 * w2, y2 + 0.5 * h2, w2, h2)
-                        # if iou < 0.1:
-                        #     continue
-                        #     # print '没有重叠，过滤掉'
-                        # elif iou > 0.5:
-                        #     # print '两个bounding box重叠度为：', iou
-                        #     # print '将舍弃该张图像'
-                        #     continue
+                        if iou < 0.1:
+                            continue
+                            # print '没有重叠，过滤掉'
+                        elif iou > 0.5:
+                            # print '两个bounding box重叠度为：', iou
+                            # print '将舍弃该张图像'
+                            continue
 
 
-                        # cv2.polylines(img , [poly1] , True , (255 , 0 , 0) , 1)
-                        # cv2.polylines(img, [poly2], True, (0, 255, 0), 1)
 
-                        imgFileName = os.path.basename(i)[:-4] + "-" + os.path.basename(roi_imgs[j])[:-4] + "-" + str(j_angle) + "-" + os.path.basename(roi_imgs[k][:-4]) + "-" + str(k_angle) + ".png"
+
+                        imgFileName = os.path.basename(background_imgs[i])[:-4] + "-" + os.path.basename(roi_imgs[j])[:-4] + "-" + str(j_angle) + "-" + os.path.basename(roi_imgs[k][:-4]) + "-" + str(k_angle) + ".png"
                         imagePath = os.path.join(imgFolderName, imgFileName)
                         writer = PascalVocWriter(imgFolderName, imgFileName, (img_h, img_w, 3), localImgPath=imagePath,
                                                  usrname="auto")
