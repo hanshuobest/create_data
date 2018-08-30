@@ -439,6 +439,8 @@ if __name__ == '__main__':
     print '开始生成ROI模板'
     json_lst = glob.glob(os.path.join(os.getcwd(), "sku") + "/*.json")
     img_lst = glob.glob(os.path.join(os.getcwd(), "sku") + "/*.png")
+    print('num of json:' , len(json_lst))
+    print('num of img_lst:' , len(img_lst))
 
     assert len(json_lst) == len(img_lst)
 
@@ -451,17 +453,19 @@ if __name__ == '__main__':
         pass
     else:
         os.mkdir(roi_path)
-
+    # print(len(json_lst))
     for j_info in json_lst:
+	# print(os.path.basename(j_info))
         json_info = parese_json(j_info)
         polygon_points = json_info["shapes"][0]["points"]
         label = json_info["shapes"][0]["label"]
         imagePath = os.path.join(os.getcwd(), "sku") + "/" + os.path.basename(json_info['imagePath'])
-
+	# print('imagePath:' , imagePath)
+	# print('imagePath:' , imagePath)
         img = cv2.imread(imagePath)
         if type(img) == type(None):
             print "打开图片失败！"
-            break
+            continue
         img_h, img_w, _ = img.shape
         pts = np.array(polygon_points, dtype=np.int32)
         x, y, w, h = cv2.boundingRect(pts)
@@ -487,6 +491,7 @@ if __name__ == '__main__':
         roi_imagePath = roi_path + "/" + os.path.basename(json_info['imagePath'])[:-4] + ".png"
         cv2.imwrite(roi_imagePath, imgROI)
         roi_jsonPath = roi_path + "/" + os.path.basename(json_info['imagePath'])[:-4] + "-" + "roi.json"
+	# print(roi_jsonPath)
         with open(roi_jsonPath, 'w') as json_file:
             json.dump(roi_json, json_file, ensure_ascii=False)
     print '模板ROI生成完毕！'
@@ -541,7 +546,7 @@ if __name__ == '__main__':
             if np.random.randint(0 , 2):
                 roi_img_1 , poly_roi_img1 = imageZoom(roi_img_1 , poly_roi_img1 , random.randint(0 , 1))
 
-            rotate_angles_index1 = np.random.choice(rotate_angles , 2 , replace=False)
+            rotate_angles_index1 = np.random.choice(rotate_angles , 1 , replace=False)
             # 遍历旋转角度
             for j_angle in rotate_angles_index1:
                 result2 = result.copy()
@@ -590,7 +595,7 @@ if __name__ == '__main__':
                     if np.random.randint(0 , 2):
                         roi_img_2 , poly_roi_img2 = imageZoom(roi_img_2 , poly_roi_img2 , random.randint(0 , 1))
 
-                    rotate_angles_index2 = np.random.choice(rotate_angles, 2, replace=False)
+                    rotate_angles_index2 = np.random.choice(rotate_angles, 1, replace=False)
                     for k_angle in rotate_angles_index2:
                         rotate_roi_img_2 , rotate_matrix_2 = rotate_image(roi_img_2 , k_angle)
                         rotate_roi_h_2 , rotate_roi_w_2 , _ = rotate_roi_img_2.shape
