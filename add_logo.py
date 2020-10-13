@@ -73,7 +73,7 @@ def get_annotation_from_mask(mask):
 
 
 
-def add_logo(bk_img_cv , logo_img_cv , mask_img_cv):
+def add_logo(bk_img_cv , logo_img_cv , mask_img_cv , start_x = 0 , start_y = 0):
     assert logo_img_cv.shape != mask_img_cv.shape , print("size not same")
     _ , mask_img = cv.threshold(mask_img_cv, 10, 255, cv.THRESH_BINARY)
     
@@ -88,7 +88,6 @@ def add_logo(bk_img_cv , logo_img_cv , mask_img_cv):
     mask_img_inv = cv.bitwise_not(mask_img)
     
     img1_bg = cv.bitwise_and(roi_img, roi_img , mask= mask_img_inv)
-    import pdb; pdb.set_trace()
     img2_fg = cv.bitwise_and(logo_img_cv , logo_img_cv , mask= mask_img)
     
     dst = cv.add(img1_bg, img2_fg)
