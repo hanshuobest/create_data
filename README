@@ -1,0 +1,19 @@
+利用labelme的抠图，生成标注数据
+
+useage:
+（1）将所有labelme处理生成json文件及其对应的图片放到sku目录下;
+    运行：
+        python3 labelme_process.py
+    将生成感兴趣区域的mask文件
+    
+（2）将背景图像放到sku/background目录下
+运行:
+
+          python create_data.py
+生成的数据保存在generate目录下
+
+
+注：
+	默认是从roi中选取五分之一，两个旋转角度。
+
+
