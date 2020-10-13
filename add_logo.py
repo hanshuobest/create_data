@@ -14,26 +14,6 @@ import cv2 as cv
 import os
 import numpy as np
 
-
-def seamless_add_logo(cv_logo_img, cv_src_img):
-    gray = cv.cvtColor(cv_logo_img, cv.COLOR_BGR2GRAY)
-
-    _, mask_gray = cv.threshold(gray, 10, 255, cv.THRESH_BINARY)
-    # import pdb; pdb.set_trace()
-    cv.imwrite("binary.jpg", mask_gray)
-    # cv.imshow("binary" , binary_img)
-    # cv.waitKey(0)
-
-    logo_shape = cv_logo_img.shape[:2]
-
-    mask = 255 * np.ones((logo_shape[0], logo_shape[1]), cv_logo_img.dtype)
-    # import pdb; pdb.set_trace()
-
-    output = cv.seamlessClone(cv_logo_img, cv_src_img,
-                              mask, (500, 500), cv.NORMAL_CLONE)
-    # cv.imshow("seamless", output)
-    cv.imwrite("save.jpg", output)
-
 def get_annotation_from_mask_file(mask_file, scale=1.0):
     '''Given a mask file and scale, return the bounding box annotations
     Args:
