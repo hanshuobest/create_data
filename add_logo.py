@@ -57,35 +57,48 @@ def get_annotation_from_mask(mask):
         return -1, -1, -1, -1
 
 
-def add_logo(bk_img_cv, logo_img_cv, mask_img_cv, start_x=0, start_y=0):
-    assert logo_img_cv.shape != mask_img_cv.shape, print("size not same")
-    bk_height , bk_width = bk_img_cv.shape[:2]
+def add_logo(bk_img_cv, logo_img_cv, mask_img_cv):
+    assert logo_img_cv.shape[:2] == mask_img_cv.shape[:2], print(
+        "size not same")
+
+    if len(mask_img_cv.shape) == 3:
+        mask_img_cv = cv.cvtColor(mask_img_cv, cv.COLOR_RGB2GRAY)
+
+    bk_height, bk_width = bk_img_cv.shape[:2]
     _, mask_img = cv.threshold(mask_img_cv, 10, 255, cv.THRESH_BINARY)
     xmin, xmax, ymin, ymax = get_annotation_from_mask(mask_img)
     logo_height, logo_width = ymax - ymin, xmax - xmin
-    
+
     mask_img = mask_img[ymin: ymax, xmin: xmax]
     logo_img_cv = logo_img_cv[ymin: ymax, xmin: xmax]
-    
+
     scale = 1.0
     if logo_height * 3 >= bk_height or logo_width * 3 >= bk_width:
         scale = min(bk_height/(3 * logo_height), bk_width/(3 * logo_width))
-    print("scale: ", scale)    
+    print("scale: ", scale)
     print("src logo size: {} , {}".format(logo_height, logo_width))
     target_logo_size = (int(logo_height * scale), int(logo_width * scale))
-    print("target log size: " , target_logo_size)
+    print("target log size: ", target_logo_size)
+
+    mask_img = cv.resize(mask_img, (target_logo_size[1], target_logo_size[0]))
+    logo_img_cv = cv.resize(
+        logo_img_cv, (target_logo_size[1], target_logo_size[0]))
+     
+    start_x = randint(bk_width >> 2 , bk_width - target_logo_size[1])
+    start_y = randint(bk_height >> 1 , bk_height - target_logo_size[0])
     
-    mask_img = cv.resize(mask_img, (target_logo_size[1] , target_logo_size[0]))
-    logo_img_cv = cv.resize(logo_img_cv, (target_logo_size[1] , target_logo_size[0]))
-    roi_img = bk_img_cv[start_y:target_logo_size[0] + start_y, start_x:target_logo_size[1] + start_x]
+    roi_img = bk_img_cv[start_y:target_logo_size[0] +
+                        start_y, start_x:target_logo_size[1] + start_x]
 
     mask_img_inv = cv.bitwise_not(mask_img)
+    
     img1_bg = cv.bitwise_and(roi_img, roi_img, mask=mask_img_inv)
     img2_fg = cv.bitwise_and(logo_img_cv, logo_img_cv, mask=mask_img)
 
     dst = cv.add(img1_bg, img2_fg)
-    src_img[start_y:target_logo_size[0] + start_y , start_x:target_logo_size[1] + start_x] = dst
-    return src_img , (int(scale * xmin), int(scale * ymin), int(scale * xmax) , int(scale * ymax))
+    bk_img_cv[start_y:target_logo_size[0] + start_y,
+            start_x:target_logo_size[1] + start_x] = dst
+    return bk_img_cv, (start_x, start_y, start_x + target_logo_size[1] , start_y + target_logo_size[0])
 
 
 def resize_img_keep_ratio(cv_img, target_size=(720, 1280)):
@@ -101,7 +114,7 @@ def resize_img_keep_ratio(cv_img, target_size=(720, 1280)):
     left, right = pad_w//2, pad_w - (pad_w//2)
     img_new = cv.copyMakeBorder(
         img, top, bottom, left, right, cv.BORDER_CONSTANT, None, (0, 0, 0))
-    return img_new
+    return img_new , pad_w , pad_h
 
 
 if __name__ == '__main__':
@@ -120,8 +133,8 @@ if __name__ == '__main__':
     logo_img = cv.imread(logo_file)
     mask_img = cv.imread(mask_file, 0)
     src_img = cv.imread(back_image_name)
-    
 
-    result_img , bndbox = add_logo(src_img, logo_img, mask_img , start_x = 100 , start_y = 100)
-    result_img = resize_img_keep_ratio(result_img)
+    result_img, bndbox = add_logo(
+        src_img, logo_img, mask_img)
+    result_img , _ , _ = resize_img_keep_ratio(result_img)
     cv.imwrite("result.jpg", result_img)
