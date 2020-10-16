@@ -31,6 +31,7 @@ def movefile(source, dest):
     try:
         shutil.move(source, dest)
     except shutil.Error:
+        print('------------------------------------')
         if os.path.isdir(source):
             shutil.rmtree(source)
         else:
@@ -55,11 +56,12 @@ if __name__ == '__main__':
         str_commod = "labelme_json_to_dataset" + " " + i
         os.system(str_commod)
 
-        result_path = i[:-5] + "_json" 
-        image_name = i.replace("jpg" , "json")
+        result_path_dir = i[:-5] + "_json" 
+        image_name = i.replace("json" , "jpg")
+        
         if os.path.exists(image_name):
-            movefile(image_name , result_path)
-        movefile(i , result_path)
-        movefile(result_path , save_path)
+            movefile(image_name , result_path_dir)
+        movefile(i , result_path_dir)
+        movefile(result_path_dir , save_path)
 
     print('finished!')

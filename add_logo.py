@@ -57,7 +57,7 @@ def get_annotation_from_mask(mask):
         return -1, -1, -1, -1
 
 
-def add_logo(bk_img_cv, logo_img_cv, mask_img_cv):
+def add_logo(bk_img_cv, logo_img_cv, mask_img_cv , pad_w = 0 , pad_h = 0):
     assert logo_img_cv.shape[:2] == mask_img_cv.shape[:2], print(
         "size not same")
 
@@ -75,6 +75,9 @@ def add_logo(bk_img_cv, logo_img_cv, mask_img_cv):
     scale = 1.0
     if logo_height * 3 >= bk_height or logo_width * 3 >= bk_width:
         scale = min(bk_height/(3 * logo_height), bk_width/(3 * logo_width))
+    elif logo_height * 20 < bk_height or logo_width * 20 < bk_width:
+        scale = max(bk_height/(20 * logo_height) , bk_width/(20 * logo_width))
+            
     print("scale: ", scale)
     print("src logo size: {} , {}".format(logo_height, logo_width))
     target_logo_size = (int(logo_height * scale), int(logo_width * scale))
@@ -87,8 +90,8 @@ def add_logo(bk_img_cv, logo_img_cv, mask_img_cv):
     start_x = randint(bk_width >> 2 , bk_width - target_logo_size[1])
     start_y = randint(bk_height >> 1 , bk_height - target_logo_size[0])
     
-    roi_img = bk_img_cv[start_y:target_logo_size[0] +
-                        start_y, start_x:target_logo_size[1] + start_x]
+    roi_img = bk_img_cv[pad_h +  start_y: pad_h + target_logo_size[0] +
+                        start_y, pad_w + start_x: pad_w + target_logo_size[1] + start_x]
 
     mask_img_inv = cv.bitwise_not(mask_img)
     
@@ -96,9 +99,9 @@ def add_logo(bk_img_cv, logo_img_cv, mask_img_cv):
     img2_fg = cv.bitwise_and(logo_img_cv, logo_img_cv, mask=mask_img)
 
     dst = cv.add(img1_bg, img2_fg)
-    bk_img_cv[start_y:target_logo_size[0] + start_y,
-            start_x:target_logo_size[1] + start_x] = dst
-    return bk_img_cv, (start_x, start_y, start_x + target_logo_size[1] , start_y + target_logo_size[0])
+    bk_img_cv[pad_h +  start_y: pad_h + target_logo_size[0] +
+                        start_y, pad_w + start_x: pad_w + target_logo_size[1] + start_x] = dst
+    return bk_img_cv, (pad_w + start_x, pad_h + start_y, pad_w + start_x + target_logo_size[1] , pad_h + start_y + target_logo_size[0])
 
 
 def resize_img_keep_ratio(cv_img, target_size=(720, 1280)):
@@ -133,6 +136,10 @@ if __name__ == '__main__':
     logo_img = cv.imread(logo_file)
     mask_img = cv.imread(mask_file, 0)
     src_img = cv.imread(back_image_name)
+    
+    src_img ,pad_w , pad_h = resize_img_keep_ratio(src_img)
+    pad_w = pad_w >> 1
+    pad_h = pad_h >> 1
 
     result_img, bndbox = add_logo(
         src_img, logo_img, mask_img)

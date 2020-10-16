@@ -35,6 +35,7 @@ import argparse
 import configparser
 from os.path import join, exists , basename
 from add_logo import add_logo
+from copy import  deepcopy
 
 
 imgFolderName = None
@@ -109,7 +110,7 @@ def process_sub(background_lst, roi_lst):
             mask_img_cv = cv2.imread(mask_img_name, 0)
             label_name = read_labels(label_name)
 
-            result_img, bndbox = add_logo(bk_img, logo_src_img_cv, mask_img_cv)
+            result_img, bndbox = add_logo(deepcopy(bk_img), logo_src_img_cv, mask_img_cv)
             resize_result_img , pad_w , pad_h = resize_img_keep_ratio(result_img , target_size = (720 , 1280))
             pad_w = pad_w >> 1
             pad_h = pad_h >> 1
@@ -118,12 +119,11 @@ def process_sub(background_lst, roi_lst):
             w_scale = 1280 /bk_width
             scale = min(h_scale, w_scale)
             bndbox = (int(scale * bndbox[0]) + pad_w , int(scale * bndbox[1]) + pad_h , int(scale * bndbox[2]) + pad_w , int(scale * bndbox[3]) + pad_h)
-    
             
+            if bndbox[2] - bndbox[0] <= 20 or bndbox[3] - bndbox[1] <= 20:
+                continue
             
-            imgFileName = basename(background_lst[i])[:-4] + "_" + basename(j)[:-4] + ".jpg"
-            
-            
+            imgFileName = basename(background_lst[i])[:-4] + "_" + basename(j) + ".jpg"
             write_xml(imgFileName , imgFolderName ,result_img.shape , bndbox , label_name)
             
             if randint(0 , 10) == 6:
