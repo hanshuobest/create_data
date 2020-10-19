@@ -33,12 +33,13 @@ from imutils.paths import list_images
 import functools
 import argparse
 import configparser
-from os.path import join, exists , basename
+from os.path import join, exists, basename
 from add_logo import add_logo
-from copy import  deepcopy
+from copy import deepcopy
 
 
 imgFolderName = None
+
 
 def resize_img_keep_ratio(cv_img, target_size=(720, 1280)):
     old_size = cv_img.shape[0:2]
@@ -53,7 +54,7 @@ def resize_img_keep_ratio(cv_img, target_size=(720, 1280)):
     left, right = pad_w//2, pad_w - (pad_w//2)
     img_new = cv2.copyMakeBorder(
         img, top, bottom, left, right, cv2.BORDER_CONSTANT, None, (0, 0, 0))
-    return img_new , pad_w , pad_h
+    return img_new, pad_w, pad_h
 
 
 def addPepperNoise(src):
@@ -84,6 +85,7 @@ def read_labels(label_file):
         else:
             return None
 
+
 def process_sub(background_lst, roi_lst):
     print('------start-------')
     global imgFolderName
@@ -93,8 +95,8 @@ def process_sub(background_lst, roi_lst):
 
     for i in tqdm(range(len(background_lst))):
         bk_img = cv2.imread(background_lst[i])
-        bk_height , bk_width = bk_img.shape[:2]
-        
+        bk_height, bk_width = bk_img.shape[:2]
+
         for j in roi_lst:
             logo_src_img_name = join(j, "img.png")
             mask_img_name = join(j, "label.png")
@@ -109,28 +111,32 @@ def process_sub(background_lst, roi_lst):
             mask_img_cv = cv2.imread(mask_img_name, 0)
             label_name = read_labels(label_name)
 
-            result_img, bndbox = add_logo(deepcopy(bk_img), logo_src_img_cv, mask_img_cv)
-            resize_result_img , pad_w , pad_h = resize_img_keep_ratio(result_img , target_size = (720 , 1280))
+            result_img, bndbox = add_logo(
+                deepcopy(bk_img), logo_src_img_cv, mask_img_cv)
+            resize_result_img, pad_w, pad_h = resize_img_keep_ratio(
+                result_img, target_size=(720, 1280))
             pad_w = pad_w >> 1
             pad_h = pad_h >> 1
-            
-            h_scale = 720 /bk_height
-            w_scale = 1280 /bk_width
+
+            h_scale = 720 / bk_height
+            w_scale = 1280 / bk_width
             scale = min(h_scale, w_scale)
-            bndbox = (int(scale * bndbox[0]) + pad_w , int(scale * bndbox[1]) + pad_h , int(scale * bndbox[2]) + pad_w , int(scale * bndbox[3]) + pad_h)
-            
+            bndbox = (int(scale * bndbox[0]) + pad_w, int(scale * bndbox[1]) + pad_h, int(
+                scale * bndbox[2]) + pad_w, int(scale * bndbox[3]) + pad_h)
+
             if bndbox[2] - bndbox[0] <= 20 or bndbox[3] - bndbox[1] <= 20:
                 continue
-            
-            imgFileName = basename(background_lst[i])[:-4] + "_" + basename(j) + ".jpg"
-            write_xml(imgFileName , imgFolderName ,result_img.shape , bndbox , label_name)
-            
-            if randint(0 , 10) == 6:
-                resize_result_img = addPepperNoise(resize_result_img)
-            elif randint(0 , 10) == 8:
-                resize_result_img = cv2.GaussianBlur(resize_result_img, (5, 5), 0)
-            
-            cv2.imwrite(join(imgFolderName, imgFileName) , resize_result_img)
+
+            imgFileName = basename(background_lst[i])[
+                :-4] + "_" + basename(j) + ".jpg"
+            write_xml(imgFileName, imgFolderName,
+                      result_img.shape, bndbox, label_name)
+
+            if randint(0, 10) == 8:
+                resize_result_img = cv2.GaussianBlur(
+                    resize_result_img, (5, 5), 0)
+
+            cv2.imwrite(join(imgFolderName, imgFileName), resize_result_img)
 
 
 def write_xml(image_file_name, img_folder_name, img_size, bndbox, label):
