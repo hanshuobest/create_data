@@ -61,33 +61,42 @@ def add_logo(bk_img_cv, logo_img_cv, mask_img_cv , pad_w = 0 , pad_h = 0):
     assert logo_img_cv.shape[:2] == mask_img_cv.shape[:2], print(
         "size not same")
 
-    if len(mask_img_cv.shape) == 3:
+    if mask_img_cv.ndim == 3:
         mask_img_cv = cv.cvtColor(mask_img_cv, cv.COLOR_RGB2GRAY)
+        
+    mask_img_cv_h , mask_img_cv_w = mask_img_cv.shape[:2]    
 
     bk_height, bk_width = bk_img_cv.shape[:2]
     _, mask_img = cv.threshold(mask_img_cv, 10, 255, cv.THRESH_BINARY)
     xmin, xmax, ymin, ymax = get_annotation_from_mask(mask_img)
     logo_height, logo_width = ymax - ymin, xmax - xmin
+    
+    logo_ratio = min(logo_height/mask_img_cv_h , logo_width/mask_img_cv_w)
+    aspect_ratio = logo_width/logo_height
 
     mask_img = mask_img[ymin: ymax, xmin: xmax]
     logo_img_cv = logo_img_cv[ymin: ymax, xmin: xmax]
 
     scale = 1.0
-    if logo_height * 3 >= bk_height or logo_width * 3 >= bk_width:
-        scale = min(bk_height/(3 * logo_height), bk_width/(3 * logo_width))
-    elif logo_height * 20 < bk_height or logo_width * 20 < bk_width:
-        scale = max(bk_height/(20 * logo_height) , bk_width/(20 * logo_width))
+    
+    target_logo_size = (int(logo_ratio * bk_height) , int(logo_ratio * bk_height * aspect_ratio))
+    print("target logo size: " , target_logo_size)
+    # import pdb; pdb.set_trace()
+    
+    if target_logo_size[0] * 3 >= bk_height or target_logo_size[1] * 3 >= bk_width:
+        scale = min(bk_height/(3 * target_logo_size[0]), bk_width/(3 * target_logo_size[1]))
+
             
     print("scale: ", scale)
     print("src logo size: {} , {}".format(logo_height, logo_width))
-    target_logo_size = (int(logo_height * scale), int(logo_width * scale))
+    target_logo_size = (int(target_logo_size[0] * scale), int(target_logo_size[1] * scale))
     print("target log size: ", target_logo_size)
 
     mask_img = cv.resize(mask_img, (target_logo_size[1], target_logo_size[0]))
     logo_img_cv = cv.resize(
         logo_img_cv, (target_logo_size[1], target_logo_size[0]))
      
-    start_x = randint(bk_width >> 2 , bk_width - target_logo_size[1])
+    start_x = randint(0 , bk_width - target_logo_size[1])
     start_y = randint(bk_height >> 1 , bk_height - target_logo_size[0])
     
     roi_img = bk_img_cv[pad_h +  start_y: pad_h + target_logo_size[0] +
@@ -121,7 +130,7 @@ def resize_img_keep_ratio(cv_img, target_size=(720, 1280)):
 
 
 if __name__ == '__main__':
-    path_dir = "sku/sku_logo/1_20201011220933_json"
+    path_dir = "sku/sku_logo/ball_000000000368_json"
 
     logo_file = os.path.join(path_dir, "img.png")
     mask_file = os.path.join(path_dir, "label.png")

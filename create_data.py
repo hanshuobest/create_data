@@ -87,7 +87,6 @@ def read_labels(label_file):
 def process_sub(background_lst, roi_lst):
     print('------start-------')
     global imgFolderName
-    rotate_angles = [random.randint(-15, 15) for i in range(5)]
 
     roi_num = len(roi_lst)
     np.random.seed(0)
