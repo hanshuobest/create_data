@@ -53,17 +53,6 @@ def readAnnotations(xml_path):
 
 
 def statistic(logo_dir):
-    # xml_lsts = glob.glob(xml_dir + '/*.xml')
-    # num = len(xml_lsts)
-    # results = []
-    # for i in xml_lsts:
-    #     result = readAnnotations(i)
-    #     if len(result) == 0:
-    #         os.remove(i)
-    #         print('the xml not annation ,  delete the xml:', i)
-    #     results.extend(result)
-    # print(results)
-    
     dir_lst = os.listdir(logo_dir)
     cls_dict = {}
     for d in dir_lst:
@@ -72,18 +61,11 @@ def statistic(logo_dir):
             cls_dict[label_cls] = 1
         else:
             cls_dict[label_cls] += 1
-    
-    # for i in results:
-    #     if i[0] not in cls_dict.keys():
-    #         cls_dict[i[0]] = 1
-    #     else:
-    #         cls_dict[i[0]] += 1
-
 
     cls_dict = dict(cls_dict)
     cls_dict = sorted(cls_dict.items(), key=lambda item: item[1], reverse=True)
     print(cls_dict)
-    print('the number of detect objects:', len(cls_dict))
+    print('the total number of sku is {} , the number of class is: {}'.format(len(dir_lst) , len(cls_dict)))
     print('-------------------------------------------------------------------')
 
     labels = []

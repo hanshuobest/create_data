@@ -95,6 +95,8 @@ def process_sub(background_lst, roi_lst):
 
     for i in tqdm(range(len(background_lst))):
         bk_img = cv2.imread(background_lst[i])
+        if type(bk_img) == type(None):
+            continue
         bk_height, bk_width = bk_img.shape[:2]
 
         for j in roi_lst:
@@ -177,15 +179,21 @@ if __name__ == '__main__':
     process_lst = []
     start_time = time.time()
 
-    process_sub(background_imgs, sku_dir_lst)
+    # process_sub(background_imgs, sku_dir_lst)
 
-    # classes_count = 1
-    # for i in range(classes_count):
-    #     ps = multiprocessing.Process(target=process_sub , args=(background_imgs[i * classes_count:(i + 1) * classes_count] , roi_imgs))
-    #     ps.daemon = True
-    #     process_lst.append(ps)
-    # for i in range(classes_count):
-    #     process_lst[i].start()
+    process_count = multiprocessing.cpu_count()
+    per_sku_number = int(len(sku_dir_lst)/ process_count)
+    for i in range(process_count):
+        if i * per_sku_number < len(sku_dir_lst):
+            ps = multiprocessing.Process(target=process_sub , args=(background_imgs , sku_dir_lst[i * per_sku_number : (i + 1) * per_sku_number]))
+        else:
+            ps = multiprocessing.Process(target=process_sub , args=(background_imgs , sku_dir_lst[i * per_sku_number : ]))
+        ps.daemon = True
+        process_lst.append(ps)
+    for i in range(process_count):
+        process_lst[i].start()
 
-    # for  i in range(classes_count):
-    #     process_lst[i].join()
+    for  i in range(process_count):
+        process_lst[i].join()
+        
+    print("cost time: {}".format(time.time() - start_time))
