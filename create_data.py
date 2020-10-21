@@ -132,7 +132,7 @@ def process_sub(background_lst, roi_lst):
             imgFileName = basename(background_lst[i])[
                 :-4] + "_" + basename(j) + ".jpg"
             write_xml(imgFileName, imgFolderName,
-                      result_img.shape, bndbox, label_name)
+                      resize_result_img.shape, bndbox, label_name)
 
             if randint(0, 10) == 8:
                 resize_result_img = cv2.GaussianBlur(
